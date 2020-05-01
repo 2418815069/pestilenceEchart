@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>全国实时疫情数据分布图</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/4.7.0/echarts.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.2/axios.min.js"></script>
+  <script src="./lib/china.js"></script>
+</head>
+
+<body>
+  <!-- 为ECharts准备一个具备大小（宽高）的Dom -->
+  <div id="main" style="width: 800px;height:600px;"></div>
+  <script>
+    // 基于准备好的dom，初始化echarts实例
+    var myChart = echarts.init(document.getElementById('main'));
+    // 发送请求获取各省数据
+    axios.get('http://localhost:3000/').then(res => {
+      const result = res.data.getAreaStat;
+      var filterArr = [];
+      // 过滤出合适的属性值
+      result.forEach(item => {
+        filterArr.push({
+          name: item.provinceShortName,     // 省份
+          value: item.confirmedCount,  // 累计确诊
+          deadCount: item.deadCount,   // 死亡人数
+          curedCount: item.curedCount, // 治愈人数
+          currentConfirmedCount: item.currentConfirmedCount  // 当前确诊人数
+        });
+      });
+      // console.log(filterArr);
+
+      // 使用刚指定的配置项和数据显示图表。
+      myChart.setOption({
+        title: {
+          // 标题
+          text: '全国实时疫情数据分布图',
+          left: 'center',    // 居中
+          top: 10,
+        },
+        // 背景色
+        backgroundColor: '#f7f7f7',
+        visualMap: [{
+          type: 'piecewise',  //piecewise分段   continuous连续
+          pieces: [
+            { gt: 10000 },             // (10000, Infinity]
+            { gt: 1000, lte: 9999 },  // (1000, 9999]
+            { gt: 100, lte: 999 },  // (100, 999]
+            { gt: 10, lte: 99 },   // (10, 99]
+            { gt: 0, lte: 9 }     // (0, 9)
+          ],
+          inRange: {  // 设置地图颜色
+            color: ['#fdebcf', '#f59e83', '#e55a4e', '#cb2a2f', '#811c24'],
+          }
+        }],
+        tooltip: {  // 鼠标移上去人数提示
+          formatter: function (params) {
+            // console.log(params);
+            return `地区：${params.name}</br>
+                    累计确诊：${params.data && params.data.value || 0}</br>
+                    累计死亡：${params.data && params.data.deadCount || 0}</br>
+                    累计治愈：${params.data && params.data.curedCount || 0}</br>
+                    现存确诊：${params.data && params.data.currentConfirmedCount||0}`
+          }
+        },
+        series: [{
+          type: 'map',   // 设置类型为地图
+          map: 'china',  // 引入地图 js
+          label: {  // 显示各省名称
+            show: true
+          },
+          data: filterArr   // 数据数组
+        }]
+      });
+    });
+
+  </script>
+</body>
+
+</html>
